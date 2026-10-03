@@ -12,6 +12,15 @@ export const scene = new THREE.Scene();
 export const FOG = new THREE.Color(0x081020);
 scene.fog = new THREE.FogExp2(FOG, 0.0065);
 scene.background = FOG;
+// Free GPU memory of an object tree (geometries, materials, textures) when it is removed for good.
+// Shared materials (from M) are skipped if marked with userData.shared.
+export function disposeTree(obj) {
+  obj.traverse((o) => {
+    o.geometry?.dispose();
+    const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
+    for (const m of mats) if (!m.userData.shared) { m.map?.dispose(); m.dispose(); }
+  });
+}
 export const camera = new THREE.PerspectiveCamera(70, W() / H(), 0.1, 1200);
 scene.add(camera);
 

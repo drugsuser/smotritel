@@ -68,3 +68,4 @@ M.wood = ps1(new THREE.MeshLambertMaterial({ map: woodTex, flatShading: true }))
 M.rubber = new THREE.MeshLambertMaterial({ color: 0x22262a, flatShading: true });
 M.steel = new THREE.MeshLambertMaterial({ color: 0x8a9096, flatShading: true });
 M.lens = new THREE.MeshBasicMaterial({ color: 0x6b6450 });
+for (const m of Object.values(M)) m.userData.shared = true; // never disposed by disposeTree

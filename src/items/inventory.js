@@ -1,6 +1,6 @@
 // Inventory (hotbar slots), held item in hand, world item spawning.
 import * as THREE from 'three';
-import { scene, camera } from '../core/engine.js';
+import { scene, camera, disposeTree } from '../core/engine.js';
 import { sfx } from '../core/audio.js';
 import { ITEMS } from './registry.js';
 import { addInteractable, removeInteractable } from '../interaction/interactables.js';
@@ -22,12 +22,15 @@ export const inventory = {
   current() { return this.active >= 0 ? this.slots[this.active] : null; },
   select(i) {
     const prev = this.current();
-    if (prev) { ITEMS[prev.id].onUnequip?.(prev.st); hand.clear(); prev.st.model = null; }
+    if (prev) { ITEMS[prev.id].onUnequip?.(prev.st); hand.remove(prev.st.model); } // model is kept for reuse
     this.active = (i === this.active && prev) ? -1 : i; // same key again = put away
     const cur = this.current();
     if (cur) {
-      const def = ITEMS[cur.id], m = def.makeModel();
-      m.position.set(...def.hold.pos); m.rotation.set(...def.hold.rot); hand.add(m); cur.st.model = m;
+      const def = ITEMS[cur.id];
+      if (!cur.st.model) { // build the in-hand model only once per slot
+        const m = def.makeModel(); m.position.set(...def.hold.pos); m.rotation.set(...def.hold.rot); cur.st.model = m;
+      }
+      hand.add(cur.st.model);
       def.onEquip?.(cur.st); equipAnim = 1;
     }
     renderHotbar(this);
@@ -43,7 +46,7 @@ export function spawnItem(id, position, rotation = [0, 0, 0]) {
   const it = addInteractable({
     object: model, itemId: id,
     prompt: () => `Взять: ${def.name}`,
-    interact: () => { if (inventory.add(id)) { removeInteractable(it); scene.remove(model); sfx.pickup(); } },
+    interact: () => { if (inventory.add(id)) { removeInteractable(it); scene.remove(model); disposeTree(model); sfx.pickup(); } },
   });
   return it;
 }

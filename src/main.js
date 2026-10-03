@@ -1,6 +1,6 @@
 // Entry point: builds the world, wires input, runs the loop.
 import * as THREE from 'three';
-import { render, scene } from './core/engine.js';
+import { render, scene, renderer, camera } from './core/engine.js';
 import { state } from './core/state.js';
 import './world/sky.js';
 import './world/rocks.js';
@@ -34,13 +34,16 @@ if (location.hash.includes('grab')) {
   inventory.add('flashlight'); inventory.use();
 }
 
+// compile every shader up front -> no hitch when an object first comes into view
+renderer.compile(scene, camera);
+
 // ---------- loop ----------
 const clock = new THREE.Clock();
 function frame() {
   const realDt = clock.getDelta(), dt = Math.min(realDt, 0.05), t = clock.elapsedTime;
   updateFps(realDt);
   updatePlayer(dt);
-  hovered = state.paused ? null : findHovered();
+  hovered = state.paused ? null : findHovered(); // raycast only while playing
   setPrompt(hovered?.prompt());
   updateHand(dt);
   updateSea(t);

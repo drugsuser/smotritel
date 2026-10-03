@@ -7,7 +7,12 @@ const el = document.createElement('div');
 el.innerHTML = '<div id="xhair"></div><div id="prompt"></div><div id="hotbar"></div><div id="fpsbox" hidden></div>';
 document.body.appendChild(el);
 
-export function setPrompt(text) { $('prompt').innerHTML = text ? `<b>E</b>${text}` : ''; }
+let lastPrompt = null;
+export function setPrompt(text) {
+  text = text || '';
+  if (text === lastPrompt) return; // avoid DOM writes every frame
+  lastPrompt = text; $('prompt').innerHTML = text ? `<b>E</b>${text}` : '';
+}
 
 export function renderHotbar(inv) {
   $('hotbar').innerHTML = inv.slots.map((s, i) =>
@@ -17,7 +22,7 @@ export function renderHotbar(inv) {
 // FPS counter (toggle in Settings). Updates twice a second.
 let frames = 0, acc = 0;
 export function updateFps(realDt) {
-  const box = $('fpsbox'); box.hidden = !settings.showFps;
+  const box = $('fpsbox'); if (box.hidden === settings.showFps) box.hidden = !settings.showFps;
   if (box.hidden) return;
   frames++; acc += realDt;
   if (acc >= 0.5) { box.textContent = `${Math.round(frames / acc)} FPS · ${(acc / frames * 1000).toFixed(1)} мс`; frames = 0; acc = 0; }
