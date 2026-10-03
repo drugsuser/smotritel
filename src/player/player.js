@@ -9,7 +9,7 @@ import { FLOOR_Y } from '../world/lighthouse.js';
 
 export const player = { a: Math.PI * 0.5, r: 3.4, yaw: 2.6, pitch: -0.2, bob: 0, moving: false };
 const BASE_SENS = 0.0022;
-const SPEED = 2.6, EYE = 1.6;
+const SPEED = 2.125, EYE = 1.6; // 1.25 steps/s * 1.7 m stride
 const STEP_RATE = 3.93; // head-bob speed; one footstep per half cycle (~1.25 steps/s)
 const R_MIN = 3.0, R_MAX = 4.95; // walkable ring between lamp room and railing
 
