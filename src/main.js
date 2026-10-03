@@ -8,7 +8,7 @@ import { updateSea } from './world/sea.js';
 import { updateLighthouse } from './world/lighthouse.js';
 import { player, updatePlayer } from './player/player.js';
 import { hideMenu } from './ui/menu.js';
-import { setPrompt } from './ui/hud.js';
+import { setPrompt, updateFps } from './ui/hud.js';
 import { findHovered, interactables, removeInteractable } from './interaction/interactables.js';
 import { inventory, updateHand, SLOTS } from './items/inventory.js';
 import './props/table.js';
@@ -37,7 +37,8 @@ if (location.hash.includes('grab')) {
 // ---------- loop ----------
 const clock = new THREE.Clock();
 function frame() {
-  const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+  const realDt = clock.getDelta(), dt = Math.min(realDt, 0.05), t = clock.elapsedTime;
+  updateFps(realDt);
   updatePlayer(dt);
   hovered = state.paused ? null : findHovered();
   setPrompt(hovered?.prompt());

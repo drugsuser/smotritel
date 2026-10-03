@@ -11,6 +11,9 @@ background:rgba(4,8,16,.78);color:#d8d2c3;font:16px/1.6 "Courier New",monospace;
 input[type=range]{width:100%;accent-color:#fff1c0;cursor:pointer}
 .hint{opacity:.55;margin-top:22px;font-size:14px}
 [hidden]{display:none!important}
+.row.chk{flex-direction:row;justify-content:space-between;align-items:center;cursor:pointer}
+.row.chk input{width:18px;height:18px;accent-color:#fff1c0;cursor:pointer}
+#fpsbox{position:fixed;left:10px;top:8px;color:#fff1c0;font:13px "Courier New",monospace;text-shadow:0 0 3px #000;pointer-events:none;letter-spacing:1px}
 
 #xhair{position:fixed;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;background:#d8d2c3;opacity:.6;pointer-events:none}
 #prompt{position:fixed;left:50%;top:calc(50% + 28px);transform:translateX(-50%);color:#fff1c0;font:15px "Courier New",monospace;letter-spacing:2px;text-shadow:0 0 4px #000;pointer-events:none;white-space:nowrap}

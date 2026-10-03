@@ -14,6 +14,9 @@ const pct = (v) => Math.round(v * 100) + '%';
 $('vol').value = settings.volume; $('volVal').textContent = pct(settings.volume);
 $('vol').addEventListener('input', (e) => { settings.volume = +e.target.value; $('volVal').textContent = pct(settings.volume); setVolume(settings.volume); saveSettings(); });
 
+$('fps').checked = settings.showFps;
+$('fps').addEventListener('change', (e) => { settings.showFps = e.target.checked; saveSettings(); });
+
 const lock = () => { try { cvs.requestPointerLock?.()?.catch?.(() => {}); } catch (e) {} };
 
 export function showMenu() { state.paused = true; overlay.style.display = 'flex'; $('menu').hidden = false; $('settings').hidden = true; }
