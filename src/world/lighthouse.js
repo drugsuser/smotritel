@@ -33,8 +33,9 @@ export const FLOOR_Y = TOP + 0.3;  // walkable gallery surface
   glass.position.y = TOP + 2.6; glass.raycast = () => {}; LH.add(glass); // see-through: never blocks the E ray
   for (let i = 0; i < 8; i++) {
     const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
-    const f = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.6, 0.12), M.dark);
-    f.position.set(Math.cos(a) * 2.42, TOP + 2.6, Math.sin(a) * 2.42); LH.add(f);
+    // posts stand on the gallery floor against the flat faces of the octagonal wall (face = 2.5*cos(PI/8) ≈ 2.31 from center)
+    const f = new THREE.Mesh(new THREE.BoxGeometry(0.12, 3.6, 0.12), M.dark);
+    f.position.set(Math.cos(a) * 2.37, TOP + 2.1, Math.sin(a) * 2.37); f.rotation.y = -a; LH.add(f);
   }
   const ringTop = new THREE.Mesh(new THREE.CylinderGeometry(2.7, 2.6, 0.3, 8), M.metal); ringTop.position.y = TOP + 4.05; LH.add(ringTop);
   const roof = new THREE.Mesh(new THREE.ConeGeometry(2.8, 2, 8), M.roof); roof.position.y = TOP + 5.2; LH.add(roof);
