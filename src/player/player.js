@@ -25,13 +25,14 @@ addEventListener('mousemove', (e) => {
 });
 
 const pos = new THREE.Vector3(Math.cos(player.a) * player.r, 0, Math.sin(player.a) * player.r);
+const fw = new THREE.Vector3(), right = new THREE.Vector3(), mv = new THREE.Vector3(); // reused every frame
 export function updatePlayer(dt) {
   if (state.paused) { for (const k in keys) keys[k] = false; }
   const f = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
   const s = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
-  const fw = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
-  const right = new THREE.Vector3(-fw.z, 0, fw.x);
-  const mv = fw.multiplyScalar(f).add(right.multiplyScalar(s));
+  fw.set(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
+  right.set(-fw.z, 0, fw.x);
+  mv.copy(fw).multiplyScalar(f).addScaledVector(right, s);
   player.moving = mv.lengthSq() > 0;
   if (player.moving) { mv.normalize().multiplyScalar(SPEED * dt); pos.add(mv); player.bob += dt * 8; }
   const r = Math.hypot(pos.x, pos.z);
