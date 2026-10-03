@@ -32,16 +32,19 @@ export const FLOOR_Y = TOP + 0.3;  // walkable gallery surface
     new THREE.MeshLambertMaterial({ color: 0xffe6a8, emissive: 0x1a1208, transparent: true, opacity: 0.1, side: THREE.DoubleSide, depthWrite: false }));
   glass.position.y = TOP + 2.6; glass.raycast = () => {}; LH.add(glass); // see-through: never blocks the E ray
   for (let i = 0; i < 8; i++) {
-    const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
-    // posts stand on the gallery floor against the flat faces of the octagonal wall (face = 2.5*cos(PI/8) ≈ 2.31 from center)
+    // posts on the corners of the octagon (corners at multiples of 45°), floor to roof
+    const a = (i / 8) * Math.PI * 2;
     const f = new THREE.Mesh(new THREE.BoxGeometry(0.12, 3.6, 0.12), M.dark);
-    f.position.set(Math.cos(a) * 2.37, TOP + 2.1, Math.sin(a) * 2.37); f.rotation.y = -a; LH.add(f);
+    f.position.set(Math.cos(a) * 2.44, TOP + 2.1, Math.sin(a) * 2.44); f.rotation.y = Math.PI / 2 - a; LH.add(f);
   }
   const ringTop = new THREE.Mesh(new THREE.CylinderGeometry(2.7, 2.6, 0.3, 8), M.metal); ringTop.position.y = TOP + 4.05; LH.add(ringTop);
   const roof = new THREE.Mesh(new THREE.ConeGeometry(2.8, 2, 8), M.roof); roof.position.y = TOP + 5.2; LH.add(roof);
   const knob = new THREE.Mesh(new THREE.OctahedronGeometry(0.3), M.dark); knob.position.y = TOP + 6.4; LH.add(knob);
   // door to lamp room
-  const door = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.9, 0.1, 3, 6, 1), M.metal); door.position.set(0, TOP + 1.25, 2.52); LH.add(door);
+  // centered on a flat face (faces at 22.5° + k*45°, 2.5*cos(PI/8) ≈ 2.31 from center), facing outward
+  const DOOR_A = Math.PI / 2 - Math.PI / 8;
+  const door = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.9, 0.1, 3, 6, 1), M.metal);
+  door.position.set(Math.cos(DOOR_A) * 2.36, TOP + 1.25, Math.sin(DOOR_A) * 2.36); door.rotation.y = Math.PI / 2 - DOOR_A; LH.add(door);
 }
 
 addOccluder(LH);
