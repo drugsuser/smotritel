@@ -51,24 +51,34 @@ const lamp = new THREE.Mesh(new THREE.OctahedronGeometry(0.55, 0), new THREE.Mes
 lamp.position.y = lampY; LH.add(lamp);
 const lampPt = new THREE.PointLight(0xffd890, 6, 14, 1.2); lampPt.position.y = lampY; LH.add(lampPt);
 
+// Beam: two cones from the lamp, tilted down so they land on the sea ~150 m out.
+const BEAM_TILT = 0.22;                         // rad below horizon
+const BEAM_LEN = (lampY + 3) / Math.sin(BEAM_TILT); // ends just under the water -> clipped by the sea
+const BEAM_R = 13;                              // cone radius at the far end
+const ROT_SPEED = 0.12;                         // rad/s: ~52 s per turn, a pass every ~26 s
+
 const beamMat = new THREE.ShaderMaterial({
+  uniforms: { len: { value: BEAM_LEN } },
   transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
   vertexShader: `varying float vT; varying float vF; void main(){ vT = uv.y; vec4 mv = modelViewMatrix*vec4(position,1.0); vF = abs(dot(normalize(normalMatrix*normal), normalize(-mv.xyz))); gl_Position = projectionMatrix*mv;} `,
-  fragmentShader: `varying float vT; varying float vF; void main(){ float d = (1.0 - vT) * 260.0; float a = smoothstep(1.0, 25.0, d) * exp(-d / 90.0) * 0.2 * (0.4 + 0.6 * pow(1.0 - vF, 2.0)); gl_FragColor = vec4(1.0,0.9,0.65,a);} `,
+  // d = distance from the lamp (cone apex has uv.y = 1)
+  // soft volumetric look: bright where the cone faces the camera, fades to 0 at the silhouette
+  fragmentShader: `uniform float len; varying float vT; varying float vF; void main(){ float d = (1.0 - vT) * len; float a = smoothstep(3.0, 25.0, d) * exp(-d / 140.0) * 0.32 * pow(vF, 1.3); gl_FragColor = vec4(1.0,0.9,0.65,a);} `,
 });
 const rotor = new THREE.Group(); rotor.position.y = lampY; scene.add(rotor);
-const BEAM_LEN = 260;
 for (const s of [1, -1]) {
-  const arm = new THREE.Group(); arm.rotation.z = -s * 0.03; rotor.add(arm);
-  const cone = new THREE.Mesh(new THREE.ConeGeometry(16, BEAM_LEN, 10, 1, true), beamMat);
-  cone.rotation.z = -s * Math.PI / 2; cone.position.x = s * BEAM_LEN / 2; arm.add(cone);
+  const arm = new THREE.Group(); arm.rotation.z = -s * BEAM_TILT; rotor.add(arm); // tilt down along ±X
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(BEAM_R, BEAM_LEN, 12, 1, true), beamMat);
+  cone.rotation.z = s * Math.PI / 2;            // apex at the lamp, wide end out at sea
+  cone.position.x = s * BEAM_LEN / 2; cone.raycast = () => {}; arm.add(cone);
+  // real light for each beam: lights the water where the beam lands (and rocks on the way)
+  const spot = new THREE.SpotLight(0xffd9a0, 6000, 450, 0.11, 0.8, 1);
+  const hit = lampY / Math.tan(BEAM_TILT);
+  const target = new THREE.Object3D(); target.position.set(s * hit, -lampY, 0);
+  rotor.add(spot, target); spot.target = target;
 }
-const spot = new THREE.SpotLight(0xffe2a0, 140, 420, 0.12, 0.6, 0.5);
-spot.position.set(0, 0, 0); rotor.add(spot);
-const spotTarget = new THREE.Object3D(); spotTarget.position.set(100, -lampY + 2, 0); rotor.add(spotTarget); spot.target = spotTarget;
-
 
 export function updateLighthouse(t) {
-  rotor.rotation.y = t * 0.35;
-  lamp.rotation.y = -t * 0.35;
+  rotor.rotation.y = t * ROT_SPEED;
+  lamp.rotation.y = -t * ROT_SPEED;
 }
