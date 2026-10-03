@@ -17,7 +17,7 @@ import './props/table.js';
 // ---------- input ----------
 let hovered = null;
 addEventListener('keydown', (e) => {
-  if (state.paused) return;
+  if (state.paused || e.repeat) return; // held key = one action, not auto-repeat toggling
   if (e.code === 'KeyE' && hovered) hovered.interact();
   if (e.code === 'KeyF') inventory.use();
   const n = /^Digit([1-9])$/.exec(e.code); if (n && +n[1] <= SLOTS) inventory.select(+n[1] - 1);
