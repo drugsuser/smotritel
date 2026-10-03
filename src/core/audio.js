@@ -53,3 +53,27 @@ export const sfx = {
   click: () => blip('square', 1800, 1800, 0.2, 0.05),
   pickup: () => blip('triangle', 320, 180, 0.35, 0.15),
 };
+
+// Metal footstep: short noise "thud" + a few inharmonic partials (grating ring).
+let stepBuf = null;
+export function stepSound() {
+  if (!ac) return;
+  const t = ac.currentTime;
+  if (!stepBuf) {
+    const len = ac.sampleRate * 0.2; stepBuf = ac.createBuffer(1, len, ac.sampleRate);
+    const d = stepBuf.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  }
+  const vary = 0.85 + Math.random() * 0.3; // no two steps sound identical
+  // thud
+  const n = ac.createBufferSource(); n.buffer = stepBuf; n.playbackRate.value = vary;
+  const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900 * vary; bp.Q.value = 1.2;
+  const ng = ac.createGain(); ng.gain.setValueAtTime(0.9, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+  n.connect(bp).connect(ng).connect(master); n.start(t); n.stop(t + 0.2);
+  // metallic ring
+  for (const [f, v, dur] of [[620, 0.12, 0.25], [1470, 0.07, 0.18], [2310, 0.04, 0.12]]) {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'sine'; o.frequency.value = f * vary;
+    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(master); o.start(t); o.stop(t + dur + 0.01);
+  }
+}

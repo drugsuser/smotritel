@@ -54,6 +54,7 @@ export function spawnItem(id, position, rotation = [0, 0, 0]) {
 // held item sway / bob
 addEventListener('mousemove', (e) => { if (!state.paused) { swayX += e.movementX * 0.00004; swayY += e.movementY * 0.00004; } });
 export function updateHand(dt) {
+  const cur = inventory.current(); if (cur) ITEMS[cur.id].update?.(cur.st, dt);
   equipAnim = Math.max(0, equipAnim - dt * 4);
   swayX *= Math.pow(0.0005, dt); swayY *= Math.pow(0.0005, dt);
   const b = player.moving ? Math.sin(player.bob) * 0.012 : 0;

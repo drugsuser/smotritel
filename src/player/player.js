@@ -4,6 +4,7 @@ import { camera, cvs } from '../core/engine.js';
 import { state, keys } from '../core/state.js';
 import { settings } from '../core/settings.js';
 import { colliders } from '../core/colliders.js';
+import { stepSound } from '../core/audio.js';
 import { FLOOR_Y } from '../world/lighthouse.js';
 
 export const player = { a: Math.PI * 0.5, r: 3.4, yaw: 2.6, pitch: -0.2, bob: 0, moving: false };
@@ -34,7 +35,12 @@ export function updatePlayer(dt) {
   right.set(-fw.z, 0, fw.x);
   mv.copy(fw).multiplyScalar(f).addScaledVector(right, s);
   player.moving = mv.lengthSq() > 0;
-  if (player.moving) { mv.normalize().multiplyScalar(SPEED * dt); pos.add(mv); player.bob += dt * 8; }
+  if (player.moving) {
+    mv.normalize().multiplyScalar(SPEED * dt); pos.add(mv);
+    const before = Math.floor(player.bob / Math.PI);
+    player.bob += dt * 8;
+    if (Math.floor(player.bob / Math.PI) !== before) stepSound(); // one step per half bob cycle
+  }
   const r = Math.hypot(pos.x, pos.z);
   if (r > 0) pos.multiplyScalar(THREE.MathUtils.clamp(r, R_MIN, R_MAX) / r);
   for (const c of colliders) {

@@ -10,6 +10,9 @@ flashLight.position.set(0.2, -0.15, -0.3); camera.add(flashLight);
 const flashTarget = new THREE.Object3D(); flashTarget.position.set(0.05, -0.1, -10); camera.add(flashTarget); flashLight.target = flashTarget;
 
 
+const LIT = new THREE.Color(0xfff6d8);
+const rand = (a, b) => a + Math.random() * (b - a);
+
 export const flashlight = {
     name: 'Фонарик',
     makeModel() {
@@ -27,8 +30,22 @@ export const flashlight = {
     onEquip(st) { this.apply(st); },
     onUnequip(st) { flashLight.intensity = 0; },
     onUse(st) { st.on = !st.on; sfx.click(); this.apply(st); },
-    apply(st) {
-      flashLight.intensity = st.on ? 9 : 0;
-      st.model?.userData.lens.material.color.set(st.on ? 0xfff6d8 : 0x6b6450);
+    apply(st, level = 1) {
+      const lit = st.on ? level : 0;
+      flashLight.intensity = 9 * lit;
+      st.model?.userData.lens.material.color.setHex(0x6b6450).lerp(LIT, lit);
+    },
+    // called every frame while in hand: random short flicker roughly every 40 s
+    update(st, dt) {
+      if (!st.on) return;
+      st.nextFlicker ??= rand(30, 50);
+      if (st.flicker > 0) {
+        st.flicker -= dt; st.flickStep -= dt;
+        if (st.flickStep <= 0) { st.flickStep = rand(0.03, 0.09); this.apply(st, Math.random() < 0.5 ? rand(0, 0.15) : rand(0.5, 1)); }
+        if (st.flicker <= 0) this.apply(st);
+        return;
+      }
+      st.nextFlicker -= dt;
+      if (st.nextFlicker <= 0) { st.flicker = rand(0.35, 0.8); st.flickStep = 0; st.nextFlicker = rand(30, 50); }
     },
 };
