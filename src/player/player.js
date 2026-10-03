@@ -9,8 +9,8 @@ import { FLOOR_Y } from '../world/lighthouse.js';
 
 export const player = { a: Math.PI * 0.5, r: 3.4, yaw: 2.6, pitch: -0.2, bob: 0, moving: false };
 const BASE_SENS = 0.0022;
-const EYE = 1.6;
-// speed (m/s) and steps per second come from settings (TEMP tuning sliders)
+const SPEED = 1.8, EYE = 1.6;
+const STEP_RATE = 1.7 * Math.PI; // head-bob speed; one footstep per PI -> 1.7 steps/s, stride ~1.06 m
 const R_MIN = 3.0, R_MAX = 4.95; // walkable ring between lamp room and railing
 
 export function look(dx, dy) {
@@ -37,9 +37,9 @@ export function updatePlayer(dt) {
   mv.copy(fw).multiplyScalar(f).addScaledVector(right, s);
   player.moving = mv.lengthSq() > 0;
   if (player.moving) {
-    mv.normalize().multiplyScalar(settings.speed * dt); pos.add(mv);
+    mv.normalize().multiplyScalar(SPEED * dt); pos.add(mv);
     const before = Math.floor(player.bob / Math.PI);
-    player.bob += dt * settings.steps * Math.PI; // one footstep per PI
+    player.bob += dt * STEP_RATE;
     if (Math.floor(player.bob / Math.PI) !== before) stepSound(); // one step per half bob cycle
   }
   const r = Math.hypot(pos.x, pos.z);
