@@ -3,12 +3,11 @@ import * as THREE from 'three';
 import { camera, cvs } from '../core/engine.js';
 import { state, keys } from '../core/state.js';
 import { settings } from '../core/settings.js';
-import { colliders } from '../core/colliders.js';
+import { resolve } from '../core/colliders.js';
 import { stepSound } from '../core/audio.js';
 import { FLOOR_Y } from '../world/lighthouse.js';
-import { constrainRoom } from '../world/lamproom.js';
 
-export const player = { a: Math.PI * 0.5, r: 3.4, yaw: 2.6, pitch: -0.2, bob: 0, moving: false };
+export const player = { a: Math.PI * 0.5, r: 3.4, yaw: 2.6, pitch: -0.2, bob: 0, moving: false, x: 0, z: 0 }; // x/z = floor position, updated every frame
 const BASE_SENS = 0.0022;
 const SPEED = 1.8, EYE = 1.6;
 const STEP_RATE = 1.7 * Math.PI; // head-bob speed; one footstep per PI -> 1.7 steps/s, stride ~1.06 m
@@ -38,15 +37,7 @@ export function updatePlayer(dt) {
   mv.copy(fw).multiplyScalar(f).addScaledVector(right, s);
   prev.copy(pos);
   if (mv.lengthSq() > 0) { mv.normalize().multiplyScalar(SPEED * dt); pos.add(mv); }
-  // lamp room walls / door leaf + round colliders, a few passes so one can't push you into another
-  for (let i = 0; i < 3; i++) {
-    constrainRoom(pos);
-    for (const c of colliders) {
-      if (!c.r) continue;
-      const dx = pos.x - c.x, dz = pos.z - c.z, d = Math.hypot(dx, dz), min = c.r + 0.25;
-      if (d < min && d > 0) { pos.x = c.x + dx / d * min; pos.z = c.z + dz / d * min; }
-    }
-  }
+  resolve(pos); // walls, door leaf, props (see core/colliders.js)
   const r = Math.hypot(pos.x, pos.z); // railing last, so colliders can't push you over it
   if (r > R_MAX) pos.multiplyScalar(R_MAX / r);
   // steps/bob follow the distance actually walked after collisions:
@@ -58,6 +49,7 @@ export function updatePlayer(dt) {
     player.bob += STEP_RATE * walked / SPEED;
     if (Math.floor(player.bob / Math.PI) !== before) stepSound(); // one step per half bob cycle
   }
+  player.x = pos.x; player.z = pos.z;
   camera.position.set(pos.x, FLOOR_Y + EYE + (player.moving ? Math.sin(player.bob) * 0.05 : 0), pos.z);
   camera.rotation.set(player.pitch, player.yaw, 0, 'YXZ');
 }
