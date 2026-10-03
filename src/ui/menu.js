@@ -2,13 +2,17 @@
 import { cvs } from '../core/engine.js';
 import { state, $ } from '../core/state.js';
 import { settings, saveSettings } from '../core/settings.js';
-import { startAudio } from '../core/audio.js';
+import { startAudio, setVolume } from '../core/audio.js';
 
 const overlay = $('overlay');
 
 // --- settings controls (add new ones here + in index.html) ---
 $('sens').value = settings.sens; $('sensVal').textContent = (+settings.sens).toFixed(2);
 $('sens').addEventListener('input', (e) => { settings.sens = +e.target.value; $('sensVal').textContent = settings.sens.toFixed(2); saveSettings(); });
+
+const pct = (v) => Math.round(v * 100) + '%';
+$('vol').value = settings.volume; $('volVal').textContent = pct(settings.volume);
+$('vol').addEventListener('input', (e) => { settings.volume = +e.target.value; $('volVal').textContent = pct(settings.volume); setVolume(settings.volume); saveSettings(); });
 
 const lock = () => { try { cvs.requestPointerLock?.()?.catch?.(() => {}); } catch (e) {} };
 
