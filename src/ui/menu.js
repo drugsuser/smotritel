@@ -1,5 +1,5 @@
 // Main menu, pause (Esc) and settings screen.
-import { cvs } from '../core/engine.js';
+import { cvs, setRenderScale } from '../core/engine.js';
 import { state, $ } from '../core/state.js';
 import { settings, saveSettings } from '../core/settings.js';
 import { startAudio, setVolume } from '../core/audio.js';
@@ -13,6 +13,9 @@ $('sens').addEventListener('input', (e) => { settings.sens = +e.target.value; $(
 const pct = (v) => Math.round(v * 100) + '%';
 $('vol').value = settings.volume; $('volVal').textContent = pct(settings.volume);
 $('vol').addEventListener('input', (e) => { settings.volume = +e.target.value; $('volVal').textContent = pct(settings.volume); setVolume(settings.volume); saveSettings(); });
+
+$('res').value = settings.renderScale; $('resVal').textContent = pct(settings.renderScale);
+$('res').addEventListener('input', (e) => { setRenderScale(+e.target.value); $('resVal').textContent = pct(settings.renderScale); saveSettings(); });
 
 $('fps').checked = settings.showFps;
 $('fps').addEventListener('change', (e) => { settings.showFps = e.target.checked; saveSettings(); });

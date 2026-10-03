@@ -1,5 +1,6 @@
 // Renderer, scene, camera, PS1 helpers and the color-reduction post pass.
 import * as THREE from 'three';
+import { settings } from './settings.js';
 
 const W = () => innerWidth, H = () => innerHeight;
 export const renderer = new THREE.WebGLRenderer({ antialias: false });
@@ -51,19 +52,21 @@ export const rnd = (a, b) => a + Math.random() * (b - a);
 export const pick = (arr) => arr[(Math.random() * arr.length) | 0];
 export function noise(g, w, h, pal) { for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { g.fillStyle = pick(pal); g.fillRect(x, y, 1, 1); } }
 
-// ---------- post: limited colors + subtle dither (full resolution) ----------
-const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
+// ---------- post: limited colors + subtle dither ----------
+// The scene is rendered into `rt` at CSS-pixel size × settings.renderScale (NOT device pixels:
+// on a 2× screen that alone was 4× the pixels), then upscaled with nearest filtering.
+const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
 const post = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({
-  uniforms: { tDiffuse: { value: rt.texture }, levels: { value: 20.0 } },
+  uniforms: { tDiffuse: { value: rt.texture }, levels: { value: 20.0 }, res: { value: new THREE.Vector2(1, 1) }, cell: { value: 2.0 } },
   vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`,
   fragmentShader: `
-    uniform sampler2D tDiffuse; uniform float levels; varying vec2 vUv;
+    uniform sampler2D tDiffuse; uniform float levels; uniform vec2 res; uniform float cell; varying vec2 vUv;
     float bayer(vec2 p){ int x=int(mod(p.x,4.)), y=int(mod(p.y,4.)); int i=x+y*4;
       int m[16]=int[16](0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5); return float(m[i])/16.-0.5; }
     void main(){
       vec3 c = texture2D(tDiffuse, vUv).rgb;
       c = pow(max(c, 0.0), vec3(1.0/2.2));
-      c += bayer(floor(gl_FragCoord.xy / 2.0)) / levels;
+      c += bayer(floor(vUv * res / cell)) / levels; // dither cell ≈ 2 CSS px, aligned to scene pixels
       c = floor(c * levels + 0.5) / levels;
       gl_FragColor = vec4(c, 1.0);
     }`,
@@ -74,8 +77,11 @@ const postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
 function resize() {
   renderer.setSize(W(), H()); camera.aspect = W() / H(); camera.updateProjectionMatrix();
-  const v = renderer.getDrawingBufferSize(new THREE.Vector2()); rt.setSize(v.x, v.y);
+  const k = settings.renderScale, w = Math.max(1, Math.round(W() * k)), h = Math.max(1, Math.round(H() * k));
+  rt.setSize(w, h);
+  const u = post.material.uniforms; u.res.value.set(w, h); u.cell.value = Math.max(1, 2 * k);
 }
+export function setRenderScale(k) { settings.renderScale = k; resize(); }
 addEventListener('resize', resize); resize();
 
 export function render() {
