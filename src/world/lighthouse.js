@@ -63,7 +63,7 @@ const beamMat = new THREE.ShaderMaterial({
   vertexShader: `varying float vT; varying float vF; void main(){ vT = uv.y; vec4 mv = modelViewMatrix*vec4(position,1.0); vF = abs(dot(normalize(normalMatrix*normal), normalize(-mv.xyz))); gl_Position = projectionMatrix*mv;} `,
   // d = distance from the lamp (cone apex has uv.y = 1)
   // soft volumetric look: bright where the cone faces the camera, fades to 0 at the silhouette
-  fragmentShader: `uniform float len; varying float vT; varying float vF; void main(){ float d = (1.0 - vT) * len; float a = smoothstep(3.0, 25.0, d) * exp(-d / 140.0) * 0.07 * pow(vF, 2.0); gl_FragColor = vec4(1.0,0.9,0.65,a);} `,
+  fragmentShader: `uniform float len; varying float vT; varying float vF; void main(){ float d = (1.0 - vT) * len; float a = smoothstep(0.5, 4.0, d) * mix(0.4, 1.0, smoothstep(6.0, 30.0, d)) * exp(-d / 140.0) * 0.07 * pow(vF, 2.0); gl_FragColor = vec4(1.0,0.9,0.65,a);} `,
 });
 const rotor = new THREE.Group(); rotor.position.y = lampY; scene.add(rotor);
 for (const s of [1, -1]) {
