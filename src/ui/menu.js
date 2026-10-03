@@ -14,6 +14,13 @@ const pct = (v) => Math.round(v * 100) + '%';
 $('vol').value = settings.volume; $('volVal').textContent = pct(settings.volume);
 $('vol').addEventListener('input', (e) => { settings.volume = +e.target.value; $('volVal').textContent = pct(settings.volume); setVolume(settings.volume); saveSettings(); });
 
+// TEMP: movement tuning. Remove once speed/steps are picked.
+const stride = () => (settings.speed / settings.steps).toFixed(2);
+const showMove = () => { $('speedVal').textContent = `${settings.speed.toFixed(2)} м/с`; $('stepsVal').textContent = `${settings.steps.toFixed(2)} (шаг ${stride()} м)`; };
+$('speed').value = settings.speed; $('steps').value = settings.steps; showMove();
+$('speed').addEventListener('input', (e) => { settings.speed = +e.target.value; showMove(); saveSettings(); });
+$('steps').addEventListener('input', (e) => { settings.steps = +e.target.value; showMove(); saveSettings(); });
+
 $('fps').checked = settings.showFps;
 $('fps').addEventListener('change', (e) => { settings.showFps = e.target.checked; saveSettings(); });
 
