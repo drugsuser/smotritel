@@ -71,13 +71,11 @@ ROOM.add(pivot);
 }
 const OPEN_ANGLE = 1.75, SWING_TIME = 1.0;
 const door = { target: 0, k: 0 };            // k: 0 closed .. 1 open
-const doorCols = [addCollider(0, 0, 0), addCollider(0, 0, 0)]; // follow the leaf when it is open
-let inDoorway = false;                       // player stands in the wall band (set by constrainRoom)
 addInteractable({
   object: pivot,
   prompt: () => door.target ? 'Закрыть дверь' : 'Открыть дверь',
   interact: () => {
-    if (door.target && inDoorway) return;    // don't slam it on the player
+    if (door.target && inDoorSweep()) return; // don't slam it on the player
     door.target = door.target ? 0 : 1;
     creakSound(SWING_TIME * (door.target ? 1 : 0.8));
   },
@@ -113,33 +111,54 @@ addInteractable({
 addOccluder(ROOM);
 
 // ---------- player vs walls ----------
-// Circular approximation of the octagon: the band R_IN..R_OUT is solid except the doorway (when open).
-const R_IN = WR - 0.04 - 0.25, R_OUT = RC + 0.08 + 0.25, DOOR_HALF = DW / 2 - 0.2;
-export function constrainRoom(pos, prev) {
-  const r = Math.hypot(pos.x, pos.z), pr = Math.hypot(prev.x, prev.z);
-  inDoorway = r > R_IN && r < R_OUT;
-  if (!inDoorway) return;
-  const along = pos.x * DB.n.x + pos.z * DB.n.z, side = pos.x * DB.t.x + pos.z * DB.t.z;
-  const wasIn = pr > R_IN && pr < R_OUT;
-  if (door.k > 0.85 && along > 0 && (wasIn || Math.abs(side) < DOOR_HALF)) { // walking through the doorway
-    const s = THREE.MathUtils.clamp(side, -DOOR_HALF, DOOR_HALF);
-    pos.set(DB.n.x * along + DB.t.x * s, pos.y, DB.n.z * along + DB.t.z * s);
-    return;
-  }
-  pos.multiplyScalar((pr < (R_IN + R_OUT) / 2 ? R_IN : R_OUT) / r); // back to the side we came from
-  inDoorway = false;
+// The walls are the 8 real segments of the octagon (the door face has a DW-wide gap) and the
+// door leaf is one more segment that moves with the door. The player is a circle pushed out of
+// every segment, so corners, jambs and the leaf collide exactly where they are drawn, and the
+// doorway is passable as soon as the leaf has physically swung out of the way.
+const PLAYER_R = 0.25, WALL_HALF = 0.04, LEAF_HALF = 0.03;
+const CR = WR / Math.cos(Math.PI / 8);       // corner radius of the wall plane
+const corner = (k) => new THREE.Vector2(Math.cos(k * Math.PI / 4) * CR, Math.sin(k * Math.PI / 4) * CR); // (x, z)
+const walls = [];
+for (let k = 0; k < 8; k++) {
+  const a = corner(k), b = corner(k + 1);
+  if (k !== DOOR_FACE) { walls.push([a, b]); continue; }
+  const mid = a.clone().add(b).multiplyScalar(0.5), dir = b.clone().sub(a).normalize();
+  walls.push([a, mid.clone().addScaledVector(dir, -DW / 2)], [mid.clone().addScaledVector(dir, DW / 2), b]); // jambs
+}
+const leafA = new THREE.Vector2(pivot.position.x, pivot.position.z), leafB = new THREE.Vector2();
+
+function pushOut(pos, a, b, min) {
+  const abx = b.x - a.x, abz = b.y - a.y;
+  const t = THREE.MathUtils.clamp(((pos.x - a.x) * abx + (pos.z - a.y) * abz) / (abx * abx + abz * abz), 0, 1);
+  const cx = a.x + abx * t, cz = a.y + abz * t, dx = pos.x - cx, dz = pos.z - cz, d = Math.hypot(dx, dz);
+  if (d >= min || d === 0) return;
+  pos.x = cx + dx / d * min; pos.z = cz + dz / d * min;
+}
+
+const lastPos = new THREE.Vector2(99, 99);
+export function constrainRoom(pos) {
+  for (const [a, b] of walls) pushOut(pos, a, b, PLAYER_R + WALL_HALF);
+  pushOut(pos, leafA, leafB, PLAYER_R + LEAF_HALF);
+  lastPos.set(pos.x, pos.z);
+}
+// player is somewhere the closing leaf would sweep through (inside the room or in the doorway)
+function inDoorSweep() {
+  const along = lastPos.x * DB.n.x + lastPos.y * DB.n.z; // lastPos is (x, z)
+  return lastPos.distanceTo(leafA) < DW + PLAYER_R + 0.05 && along < WR + PLAYER_R + 0.05;
 }
 
 const tmp = new THREE.Vector3();
+function updateLeaf() {
+  pivot.updateMatrixWorld();
+  pivot.localToWorld(tmp.set(DW, 0, 0)); leafB.set(tmp.x, tmp.z);
+}
+pivot.rotation.y = DB.rotY; updateLeaf();
+
 export function updateLamproom(dt) {
   const prevK = door.k;
   door.k = THREE.MathUtils.clamp(door.k + Math.sign(door.target - door.k) * dt / SWING_TIME, 0, 1);
   if (prevK > 0 && door.k === 0) clankSound(); // shut
   const e = door.k * door.k * (3 - 2 * door.k);
   pivot.rotation.y = DB.rotY + e * OPEN_ANGLE;
-  pivot.updateMatrixWorld();
-  doorCols.forEach((c, i) => {
-    pivot.localToWorld(tmp.set(0.45 + i * 0.3, 0, 0));
-    c.x = tmp.x; c.z = tmp.z; c.r = e > 0.6 ? 0.08 : 0;
-  });
+  updateLeaf();
 }

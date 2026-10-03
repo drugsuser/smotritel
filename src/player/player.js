@@ -38,11 +38,14 @@ export function updatePlayer(dt) {
   mv.copy(fw).multiplyScalar(f).addScaledVector(right, s);
   prev.copy(pos);
   if (mv.lengthSq() > 0) { mv.normalize().multiplyScalar(SPEED * dt); pos.add(mv); }
-  constrainRoom(pos, prev); // lamp room walls + doorway
-  for (const c of colliders) {
-    if (!c.r) continue;
-    const dx = pos.x - c.x, dz = pos.z - c.z, d = Math.hypot(dx, dz), min = c.r + 0.25;
-    if (d < min && d > 0) { pos.x = c.x + dx / d * min; pos.z = c.z + dz / d * min; }
+  // lamp room walls / door leaf + round colliders, a few passes so one can't push you into another
+  for (let i = 0; i < 3; i++) {
+    constrainRoom(pos);
+    for (const c of colliders) {
+      if (!c.r) continue;
+      const dx = pos.x - c.x, dz = pos.z - c.z, d = Math.hypot(dx, dz), min = c.r + 0.25;
+      if (d < min && d > 0) { pos.x = c.x + dx / d * min; pos.z = c.z + dz / d * min; }
+    }
   }
   const r = Math.hypot(pos.x, pos.z); // railing last, so colliders can't push you over it
   if (r > R_MAX) pos.multiplyScalar(R_MAX / r);
