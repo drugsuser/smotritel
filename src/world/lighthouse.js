@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { scene } from '../core/engine.js';
 import { M } from './materials.js';
+import { addOccluder } from '../interaction/interactables.js';
 
 // ---------- lighthouse ----------
 const LH = new THREE.Group(); scene.add(LH);
@@ -29,7 +30,7 @@ export const FLOOR_Y = TOP + 0.3;  // walkable gallery surface
   const wall = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.5, 1, 8, 4), M.metal); wall.position.y = TOP + 0.8; LH.add(wall);
   const glass = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 2.6, 8, 1, true),
     new THREE.MeshLambertMaterial({ color: 0xffe6a8, emissive: 0x1a1208, transparent: true, opacity: 0.1, side: THREE.DoubleSide, depthWrite: false }));
-  glass.position.y = TOP + 2.6; LH.add(glass);
+  glass.position.y = TOP + 2.6; glass.raycast = () => {}; LH.add(glass); // see-through: never blocks the E ray
   for (let i = 0; i < 8; i++) {
     const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
     const f = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.6, 0.12), M.dark);
@@ -41,6 +42,8 @@ export const FLOOR_Y = TOP + 0.3;  // walkable gallery surface
   // door to lamp room
   const door = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.9, 0.1, 3, 6, 1), M.metal); door.position.set(0, TOP + 1.25, 2.52); LH.add(door);
 }
+
+addOccluder(LH);
 
 // lamp + rotating beam
 const lampY = TOP + 2.6;

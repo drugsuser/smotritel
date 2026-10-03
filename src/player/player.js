@@ -27,7 +27,7 @@ addEventListener('mousemove', (e) => {
 });
 
 const pos = new THREE.Vector3(Math.cos(player.a) * player.r, 0, Math.sin(player.a) * player.r);
-const fw = new THREE.Vector3(), right = new THREE.Vector3(), mv = new THREE.Vector3(); // reused every frame
+const fw = new THREE.Vector3(), right = new THREE.Vector3(), mv = new THREE.Vector3(), prev = new THREE.Vector3(); // reused every frame
 export function updatePlayer(dt) {
   if (state.paused) { for (const k in keys) keys[k] = false; }
   const f = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
@@ -35,18 +35,22 @@ export function updatePlayer(dt) {
   fw.set(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
   right.set(-fw.z, 0, fw.x);
   mv.copy(fw).multiplyScalar(f).addScaledVector(right, s);
-  player.moving = mv.lengthSq() > 0;
-  if (player.moving) {
-    mv.normalize().multiplyScalar(SPEED * dt); pos.add(mv);
-    const before = Math.floor(player.bob / Math.PI);
-    player.bob += dt * STEP_RATE;
-    if (Math.floor(player.bob / Math.PI) !== before) stepSound(); // one step per half bob cycle
-  }
+  prev.copy(pos);
+  if (mv.lengthSq() > 0) { mv.normalize().multiplyScalar(SPEED * dt); pos.add(mv); }
   const r = Math.hypot(pos.x, pos.z);
   if (r > 0) pos.multiplyScalar(THREE.MathUtils.clamp(r, R_MIN, R_MAX) / r);
   for (const c of colliders) {
     const dx = pos.x - c.x, dz = pos.z - c.z, d = Math.hypot(dx, dz), min = c.r + 0.25;
     if (d < min && d > 0) { pos.x = c.x + dx / d * min; pos.z = c.z + dz / d * min; }
+  }
+  // steps/bob follow the distance actually walked after collisions:
+  // pushing into the railing = silence, sliding along it = slower steps
+  const walked = Math.hypot(pos.x - prev.x, pos.z - prev.z);
+  player.moving = walked > SPEED * dt * 0.1;
+  if (player.moving) {
+    const before = Math.floor(player.bob / Math.PI);
+    player.bob += STEP_RATE * walked / SPEED;
+    if (Math.floor(player.bob / Math.PI) !== before) stepSound(); // one step per half bob cycle
   }
   camera.position.set(pos.x, FLOOR_Y + EYE + (player.moving ? Math.sin(player.bob) * 0.05 : 0), pos.z);
   camera.rotation.set(player.pitch, player.yaw, 0, 'YXZ');
