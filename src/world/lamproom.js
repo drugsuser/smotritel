@@ -6,8 +6,7 @@ import { scene } from '../core/engine.js';
 import { M } from './materials.js';
 import { TOP, FLOOR_Y } from './lighthouse.js';
 import { addOccluder, addInteractable } from '../interaction/interactables.js';
-import { addCollider, addSegment, PLAYER_R } from '../core/colliders.js';
-import { player } from '../player/player.js';
+import { addCollider, addSegment, addBox } from '../core/colliders.js';
 import { creakSound, clankSound } from '../core/audio.js';
 
 const ROOM = new THREE.Group(); scene.add(ROOM);
@@ -76,7 +75,6 @@ addInteractable({
   object: pivot,
   prompt: () => door.target ? 'Закрыть дверь' : 'Открыть дверь',
   interact: () => {
-    if (door.target && inDoorSweep()) return; // don't slam it on the player
     door.target = door.target ? 0 : 1;
     creakSound(SWING_TIME * (door.target ? 1 : 0.8));
   },
@@ -106,7 +104,7 @@ addInteractable({
   const x = Math.cos(a) * r, z = Math.sin(a) * r;
   const crate = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 0.5, 2, 2, 2), M.wood); crate.position.set(x, FLOOR_Y + 0.25, z); crate.rotation.y = Math.PI / 2 - a + 0.2; ROOM.add(crate);
   const can = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.26, 6), M.roof); can.position.set(x + 0.1, FLOOR_Y + 0.63, z - 0.05); ROOM.add(can);
-  addCollider(x, z, 0.42);
+  addBox(x, z, 0.6, 0.5, crate.rotation.y); // real rectangle, not a circle
 }
 
 addOccluder(ROOM);
@@ -116,6 +114,8 @@ addOccluder(ROOM);
 // door leaf is one more segment that moves with the door. All of them are registered in
 // core/colliders.js, so corners, jambs and the leaf collide exactly where they are drawn, and
 // the doorway is passable as soon as the leaf has physically swung out of the way.
+// There is no "can't close, you're in the way" rule: a closing leaf just shoves the player
+// (checked: nobody ends up inside a wall or trapped, you only get nudged, sometimes out the door).
 const WALL_HALF = 0.04, LEAF_HALF = 0.03;
 const CR = WR / Math.cos(Math.PI / 8);       // corner radius of the wall plane
 const corner = (k) => new THREE.Vector2(Math.cos(k * Math.PI / 4) * CR, Math.sin(k * Math.PI / 4) * CR); // (x, z)
@@ -128,12 +128,6 @@ for (let k = 0; k < 8; k++) {
 }
 const leafA = new THREE.Vector2(pivot.position.x, pivot.position.z);
 const leaf = addSegment(leafA.x, leafA.y, leafA.x, leafA.y, LEAF_HALF); // end point is set by updateLeaf()
-
-// player is somewhere the closing leaf would sweep through (inside the room or in the doorway)
-function inDoorSweep() {
-  const along = player.x * DB.n.x + player.z * DB.n.z;
-  return Math.hypot(player.x - leafA.x, player.z - leafA.y) < DW + PLAYER_R + 0.05 && along < WR + PLAYER_R + 0.05;
-}
 
 const tmp = new THREE.Vector3();
 function updateLeaf() {
