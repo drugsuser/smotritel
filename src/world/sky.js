@@ -20,5 +20,5 @@ import { scene, FOG } from '../core/engine.js';
 }
 
 // ---------- lights ----------
-scene.add(new THREE.HemisphereLight(0x3a5280, 0x06090e, 0.85));
-const moonLight = new THREE.DirectionalLight(0x9fb2d8, 0.6); moonLight.position.set(-420, 260, -560); scene.add(moonLight);
+scene.add(new THREE.HemisphereLight(0x3a5280, 0x06090e, 0.6));
+const moonLight = new THREE.DirectionalLight(0x9fb2d8, 0.42); moonLight.position.set(-420, 260, -560); scene.add(moonLight);
