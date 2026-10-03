@@ -6,6 +6,7 @@ import './world/sky.js';
 import './world/rocks.js';
 import { updateSea } from './world/sea.js';
 import { updateLighthouse } from './world/lighthouse.js';
+import { updateLamproom } from './world/lamproom.js';
 import { player, updatePlayer } from './player/player.js';
 import { hideMenu } from './ui/menu.js';
 import { setPrompt, updateFps } from './ui/hud.js';
@@ -48,6 +49,7 @@ function frame() {
   updateHand(dt);
   updateSea(t);
   updateLighthouse(t);
+  updateLamproom(dt);
   render();
   requestAnimationFrame(frame);
 }
