@@ -54,7 +54,7 @@ const lampPt = new THREE.PointLight(0xffd890, 6, 14, 1.2); lampPt.position.y = l
 // Beam: two cones from the lamp, tilted down so they land on the sea ~150 m out.
 const BEAM_TILT = 0.22;                         // rad below horizon
 const BEAM_LEN = (lampY + 3) / Math.sin(BEAM_TILT); // ends just under the water -> clipped by the sea
-const BEAM_R = 13;                              // cone radius at the far end
+const BEAM_R = 9;                               // cone radius at the far end
 const ROT_SPEED = 0.12;                         // rad/s: ~52 s per turn, a pass every ~26 s
 
 const beamMat = new THREE.ShaderMaterial({
@@ -63,7 +63,7 @@ const beamMat = new THREE.ShaderMaterial({
   vertexShader: `varying float vT; varying float vF; void main(){ vT = uv.y; vec4 mv = modelViewMatrix*vec4(position,1.0); vF = abs(dot(normalize(normalMatrix*normal), normalize(-mv.xyz))); gl_Position = projectionMatrix*mv;} `,
   // d = distance from the lamp (cone apex has uv.y = 1)
   // soft volumetric look: bright where the cone faces the camera, fades to 0 at the silhouette
-  fragmentShader: `uniform float len; varying float vT; varying float vF; void main(){ float d = (1.0 - vT) * len; float a = smoothstep(3.0, 25.0, d) * exp(-d / 140.0) * 0.32 * pow(vF, 1.3); gl_FragColor = vec4(1.0,0.9,0.65,a);} `,
+  fragmentShader: `uniform float len; varying float vT; varying float vF; void main(){ float d = (1.0 - vT) * len; float a = smoothstep(3.0, 25.0, d) * exp(-d / 140.0) * 0.07 * pow(vF, 2.0); gl_FragColor = vec4(1.0,0.9,0.65,a);} `,
 });
 const rotor = new THREE.Group(); rotor.position.y = lampY; scene.add(rotor);
 for (const s of [1, -1]) {
