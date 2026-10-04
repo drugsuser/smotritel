@@ -6,7 +6,7 @@ import { scene } from '../core/engine.js';
 import { M } from './materials.js';
 import { TOP, FLOOR_Y } from './lighthouse.js';
 import { addOccluder, addInteractable } from '../interaction/interactables.js';
-import { addCollider, addSegment, addBox } from '../core/colliders.js';
+import { addCollider, addSegment, addBox, hitsPlayer } from '../core/colliders.js';
 import { creakSound, clankSound } from '../core/audio.js';
 
 const ROOM = new THREE.Group(); scene.add(ROOM);
@@ -70,13 +70,15 @@ ROOM.add(pivot);
   }
 }
 const OPEN_ANGLE = 1.75, SWING_TIME = 1.0;
-const door = { target: 0, k: 0 };            // k: 0 closed .. 1 open
+// k: 0 closed .. 1 open. target: where it is heading (or would head next, if it got stuck).
+const door = { target: 0, k: 0, stuck: false, stopCreak: null };
 addInteractable({
   object: pivot,
   prompt: () => door.target ? 'Закрыть дверь' : 'Открыть дверь',
   interact: () => {
-    door.target = door.target ? 0 : 1;
-    creakSound(SWING_TIME * (door.target ? 1 : 0.8));
+    door.target = door.target ? 0 : 1; door.stuck = false;
+    door.stopCreak?.();
+    door.stopCreak = creakSound(Math.max(0.3, SWING_TIME * Math.abs(door.target - door.k) * (door.target ? 1 : 0.8)));
   },
 });
 
@@ -85,7 +87,7 @@ addInteractable({
 {
   const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.34, 1.72, 8), M.dark); ped.position.y = FLOOR_Y + 0.86; ROOM.add(ped);
   const base = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.5, 0.12, 8), M.metal); base.position.y = FLOOR_Y + 0.06; ROOM.add(base);
-  addCollider(0, 0, 0.42);
+  addCollider(0, 0, 0.5); // = the base plate, so feet don't sink into it
 }
 // floor hatch (closed; leads down into the tower)
 {
@@ -114,8 +116,10 @@ addOccluder(ROOM);
 // door leaf is one more segment that moves with the door. All of them are registered in
 // core/colliders.js, so corners, jambs and the leaf collide exactly where they are drawn, and
 // the doorway is passable as soon as the leaf has physically swung out of the way.
-// There is no "can't close, you're in the way" rule: a closing leaf just shoves the player
-// (checked: nobody ends up inside a wall or trapped, you only get nudged, sometimes out the door).
+// The leaf never pushes the player (Gone Home style): pushing breaks in the pinch between the
+// leaf and the jamb, where there is no room left and the player got squeezed THROUGH the door.
+// Instead, if the next swing step would touch the player, the leaf stays where it was, bumps,
+// and stays ajar. Press E to swing it the other way / try again.
 const WALL_HALF = 0.04, LEAF_HALF = 0.03;
 const CR = WR / Math.cos(Math.PI / 8);       // corner radius of the wall plane
 const corner = (k) => new THREE.Vector2(Math.cos(k * Math.PI / 4) * CR, Math.sin(k * Math.PI / 4) * CR); // (x, z)
@@ -136,11 +140,24 @@ function updateLeaf() {
 }
 pivot.rotation.y = DB.rotY; updateLeaf();
 
-export function updateLamproom(dt) {
-  const prevK = door.k;
-  door.k = THREE.MathUtils.clamp(door.k + Math.sign(door.target - door.k) * dt / SWING_TIME, 0, 1);
-  if (prevK > 0 && door.k === 0) clankSound(); // shut
-  const e = door.k * door.k * (3 - 2 * door.k);
+function setDoor(k) {
+  door.k = k;
+  const e = k * k * (3 - 2 * k);
   pivot.rotation.y = DB.rotY + e * OPEN_ANGLE;
   updateLeaf();
+}
+
+// player: { x, z } floor position, already resolved for this frame.
+export function updateLamproom(dt, player) {
+  if (door.stuck || door.k === door.target) return;
+  const prevK = door.k;
+  setDoor(THREE.MathUtils.clamp(prevK + Math.sign(door.target - prevK) * dt / SWING_TIME, 0, 1));
+  if (hitsPlayer(leaf, player)) { // would hit the player: stay put, bump, and stay ajar
+    setDoor(prevK);
+    door.stuck = true; door.target = door.target ? 0 : 1; // next E swings it back the way it came
+    door.stopCreak?.(); door.stopCreak = null;
+    clankSound(0.35);
+    return;
+  }
+  if (prevK > 0 && door.k === 0) clankSound(); // shut
 }

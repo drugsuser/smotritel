@@ -49,7 +49,7 @@ function frame() {
   updateHand(dt);
   updateSea(t);
   updateLighthouse(t);
-  updateLamproom(dt);
+  updateLamproom(dt, player);
   render();
   requestAnimationFrame(frame);
 }
