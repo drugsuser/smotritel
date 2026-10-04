@@ -40,17 +40,25 @@ renderer.compile(scene, camera);
 
 // ---------- loop ----------
 const clock = new THREE.Clock();
+// Each system runs in its own try/catch: a bug in one (e.g. a sound) must not freeze the whole
+// game. Every distinct error is logged once with its stack, then the loop just keeps going.
+const reported = new Set();
+function safe(name, fn) {
+  try { fn(); } catch (e) {
+    const key = name + ': ' + (e?.message ?? e);
+    if (!reported.has(key)) { reported.add(key); console.error('[frame] ' + key, e); }
+  }
+}
 function frame() {
+  requestAnimationFrame(frame); // schedule first, so even an uncaught error can't stop the loop
   const realDt = clock.getDelta(), dt = Math.min(realDt, 0.05), t = clock.elapsedTime;
-  updateFps(realDt);
-  updatePlayer(dt);
-  hovered = state.paused ? null : findHovered(); // raycast only while playing
-  setPrompt(hovered?.prompt());
-  updateHand(dt);
-  updateSea(t);
-  updateLighthouse(t);
-  updateLamproom(dt, player);
-  render();
-  requestAnimationFrame(frame);
+  safe('fps', () => updateFps(realDt));
+  safe('player', () => updatePlayer(dt));
+  safe('interact', () => { hovered = state.paused ? null : findHovered(); setPrompt(hovered?.prompt()); }); // raycast only while playing
+  safe('hand', () => updateHand(dt));
+  safe('sea', () => updateSea(t));
+  safe('lighthouse', () => updateLighthouse(t));
+  safe('lamproom', () => updateLamproom(dt, player));
+  safe('render', render);
 }
 frame();
