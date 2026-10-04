@@ -76,7 +76,7 @@ export function stepSound() {
   for (const [f, v, dur] of [[620, 0.12, 0.25], [1470, 0.07, 0.18], [2310, 0.04, 0.12]]) {
     const o = ac.createOscillator(), g = ac.createGain();
     o.type = 'sine'; o.frequency.value = f * vary;
-    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    g.gain.setValueAtTime(v * vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g).connect(master); o.start(t); o.stop(t + dur + 0.01);
   }
 }
@@ -107,15 +107,18 @@ export function creakSound(dur = 1) {
     const g = ac.createGain(); g.gain.value = v; chop.connect(bp).connect(g).connect(out);
   }
   o.start(t0); o.stop(end + 0.05); grit.start(t0); grit.stop(end + 0.05);
+  return () => { // cut the creak short (e.g. the door got blocked mid-swing)
+    const n = ac.currentTime; out.gain.cancelScheduledValues(n); out.gain.setTargetAtTime(0.0001, n, 0.03);
+  };
 }
 
 // Heavy metal door shutting: low thud + short ring.
-export function clankSound() {
+export function clankSound(vol = 1) { // vol < 1: softer bump (door hitting the player)
   if (!ac) return;
   const t = ac.currentTime;
   const n = ac.createBufferSource(); n.buffer = whiteBuf();
   const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 500;
-  const ng = ac.createGain(); ng.gain.setValueAtTime(1.2, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+  const ng = ac.createGain(); ng.gain.setValueAtTime(1.2 * vol, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
   n.connect(lp).connect(ng).connect(master); n.start(t); n.stop(t + 0.2);
   for (const [f, v, dur] of [[190, 0.25, 0.4], [430, 0.12, 0.3], [1170, 0.05, 0.2]]) {
     const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = f;

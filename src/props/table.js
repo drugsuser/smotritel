@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { scene } from '../core/engine.js';
 import { M } from '../world/materials.js';
 import { FLOOR_Y } from '../world/lighthouse.js';
-import { addCollider } from '../core/colliders.js';
+import { addBox } from '../core/colliders.js';
 import { addOccluder } from '../interaction/interactables.js';
 import { spawnItem } from '../items/inventory.js';
 
@@ -16,7 +16,7 @@ import { spawnItem } from '../items/inventory.js';
     const leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.75, 0.06), M.wood); leg.position.set(x, 0.375, z); table.add(leg);
   }
   const bar = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.05, 0.04), M.wood); bar.position.set(0, 0.2, 0.22); table.add(bar);
-  addCollider(tx, tz, 0.6); addOccluder(table);
+  addBox(tx, tz, 1.0, 0.55, table.rotation.y); addOccluder(table); // the real table top, not a circle
   // flashlight lying on the table
   const p = new THREE.Vector3(0.1, 0.81 + 0.033, 0.02); table.localToWorld(p);
   spawnItem('flashlight', p, [0, -a + 0.9, Math.PI / 2]);

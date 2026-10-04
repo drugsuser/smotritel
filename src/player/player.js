@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { camera, cvs } from '../core/engine.js';
 import { state, keys } from '../core/state.js';
 import { settings } from '../core/settings.js';
-import { resolve } from '../core/colliders.js';
+import { resolve, addBound, PLAYER_R } from '../core/colliders.js';
 import { stepSound } from '../core/audio.js';
 import { FLOOR_Y } from '../world/lighthouse.js';
 
@@ -11,7 +11,8 @@ export const player = { a: Math.PI * 0.5, r: 3.4, yaw: 2.6, pitch: -0.2, bob: 0,
 const BASE_SENS = 0.0022;
 const SPEED = 1.8, EYE = 1.6;
 const STEP_RATE = 1.7 * Math.PI; // head-bob speed; one footstep per PI -> 1.7 steps/s, stride ~1.06 m
-const R_MAX = 4.95; // railing
+const R_MAX = 4.95; // railing: the player's centre stays within this radius
+addBound(0, 0, R_MAX + PLAYER_R); // bound radius is the player's outer edge
 
 export function look(dx, dy) {
   const k = BASE_SENS * settings.sens;
@@ -37,9 +38,7 @@ export function updatePlayer(dt) {
   mv.copy(fw).multiplyScalar(f).addScaledVector(right, s);
   prev.copy(pos);
   if (mv.lengthSq() > 0) { mv.normalize().multiplyScalar(SPEED * dt); pos.add(mv); }
-  resolve(pos); // walls, door leaf, props (see core/colliders.js)
-  const r = Math.hypot(pos.x, pos.z); // railing last, so colliders can't push you over it
-  if (r > R_MAX) pos.multiplyScalar(R_MAX / r);
+  resolve(pos, prev); // walls, door leaf, props, railing (see core/colliders.js)
   // steps/bob follow the distance actually walked after collisions:
   // pushing into the railing = silence, sliding along it = slower steps
   const walked = Math.hypot(pos.x - prev.x, pos.z - prev.z);
