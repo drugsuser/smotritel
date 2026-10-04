@@ -26,14 +26,17 @@ export const camera = new THREE.PerspectiveCamera(70, W() / H(), 0.1, 1200);
 scene.add(camera);
 
 // ---------- PS1: affine (warped) textures ----------
+// AFFINE: 0 = correct textures, 1 = full PS1 warp. Faded out closer than ~1 m: right next to the
+// camera the affine UVs blow up and a prop smears into one flat colour ("bare" prop).
+const AFFINE = '0.3';
 export function ps1(mat) {
   mat.onBeforeCompile = (s) => {
     s.vertexShader = s.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vAff;')
       .replace('#include <project_vertex>', '#include <project_vertex>\n#ifdef USE_MAP\nvAff = vec3(vMapUv * gl_Position.w, gl_Position.w);\n#endif');
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vAff;')
-      .replace('#include <map_fragment>', '#ifdef USE_MAP\ndiffuseColor *= texture2D(map, mix(vMapUv, vAff.xy / vAff.z, 0.45));\n#endif');
+      .replace('#include <common>', '#include <common>\nvarying vec3 vAff;\n#define AFFINE ' + AFFINE)
+      .replace('#include <map_fragment>', '#ifdef USE_MAP\ndiffuseColor *= texture2D(map, mix(vMapUv, vAff.xy / vAff.z, AFFINE * smoothstep(0.3, 1.2, vAff.z)));\n#endif');
   };
   return mat;
 }
