@@ -76,7 +76,7 @@ export function stepSound() {
   for (const [f, v, dur] of [[620, 0.12, 0.25], [1470, 0.07, 0.18], [2310, 0.04, 0.12]]) {
     const o = ac.createOscillator(), g = ac.createGain();
     o.type = 'sine'; o.frequency.value = f * vary;
-    g.gain.setValueAtTime(v * vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g).connect(master); o.start(t); o.stop(t + dur + 0.01);
   }
 }
@@ -122,7 +122,7 @@ export function clankSound(vol = 1) { // vol < 1: softer bump (door hitting the 
   n.connect(lp).connect(ng).connect(master); n.start(t); n.stop(t + 0.2);
   for (const [f, v, dur] of [[190, 0.25, 0.4], [430, 0.12, 0.3], [1170, 0.05, 0.2]]) {
     const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = f;
-    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    g.gain.setValueAtTime(v * vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g).connect(master); o.start(t); o.stop(t + dur + 0.01);
   }
 }
