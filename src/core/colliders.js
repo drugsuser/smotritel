@@ -7,6 +7,7 @@
 export const PLAYER_R = 0.25;
 
 const list = [];
+const EPS = 1e-9;
 
 export function addCollider(x, z, r) { const c = { x, z, r }; list.push(c); return c; }
 export function addSegment(ax, az, bx, bz, half = 0) { const c = { ax, az, bx, bz, half }; list.push(c); return c; }
@@ -23,25 +24,38 @@ export function removeCollider(c) {
   const i = list.indexOf(c); if (i >= 0) list.splice(i, 1);
 }
 
-function pushFromPoint(pos, cx, cz, min) {
+// Returns true when the position was corrected. fallbackX/Z define a deterministic
+// escape direction for the exact-center case, where the usual normal is undefined.
+function pushFromPoint(pos, cx, cz, min, fallbackX = 1, fallbackZ = 0) {
   const dx = pos.x - cx, dz = pos.z - cz, d = Math.hypot(dx, dz);
-  if (d >= min || d === 0) return;
-  pos.x = cx + dx / d * min; pos.z = cz + dz / d * min;
+  if (d >= min) return false;
+  if (d > EPS) {
+    pos.x = cx + dx / d * min; pos.z = cz + dz / d * min;
+  } else {
+    const fd = Math.hypot(fallbackX, fallbackZ) || 1;
+    pos.x = cx + fallbackX / fd * min; pos.z = cz + fallbackZ / fd * min;
+  }
+  return true;
 }
 
 function pushFromSegment(pos, c) {
   const abx = c.bx - c.ax, abz = c.bz - c.az, len2 = abx * abx + abz * abz;
   const t = len2 > 0 ? Math.min(1, Math.max(0, ((pos.x - c.ax) * abx + (pos.z - c.az) * abz) / len2)) : 0;
-  pushFromPoint(pos, c.ax + abx * t, c.az + abz * t, PLAYER_R + c.half);
+  // At exactly zero distance, use the segment normal instead of an arbitrary world axis.
+  return pushFromPoint(pos, c.ax + abx * t, c.az + abz * t, PLAYER_R + c.half, -abz, abx);
 }
 
-// Push `pos` (anything with x/z) out of every collider. A few passes, so being pushed
-// out of one thing can't leave you inside another.
-export function resolve(pos, passes = 3) {
-  for (let i = 0; i < passes; i++) {
+// Push `pos` (anything with x/z) out of every collider. Stop as soon as a full pass
+// makes no correction; the cap prevents pathological overlapping colliders from looping forever.
+export function resolve(pos, maxPasses = 8) {
+  for (let i = 0; i < maxPasses; i++) {
+    let corrected = false;
     for (const c of list) {
-      if (c.r !== undefined) pushFromPoint(pos, c.x, c.z, c.r + PLAYER_R);
-      else pushFromSegment(pos, c);
+      const moved = c.r !== undefined
+        ? pushFromPoint(pos, c.x, c.z, c.r + PLAYER_R)
+        : pushFromSegment(pos, c);
+      corrected = moved || corrected;
     }
+    if (!corrected) break;
   }
 }
